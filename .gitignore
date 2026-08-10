@@ -1,6 +1,1 @@
-# Ignore scratch Python scripts and temp files
-*.py
-*.json
-*.zip
-temp_check.js
-psis_content_planner/
+# Track all project files in this repository
