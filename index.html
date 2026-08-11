@@ -294,6 +294,20 @@
     .btn-copy { background: #ffffff; border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; }
     .caption-text { font-size: 0.88rem; color: #334155; line-height: 1.6; white-space: pre-line; }
 
+    /* Approvals Section */
+    .approvals-section { background: #f0f9ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 20px; }
+    .approvals-title { font-size: 0.82rem; font-weight: 700; color: #1d4ed8; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .approval-list { display: flex; flex-direction: column; gap: 8px; max-height: 150px; overflow-y: auto; }
+    .approval-item { background: #ffffff; padding: 10px 12px; border-radius: 8px; font-size: 0.8rem; border-left: 3px solid #1d4ed8; box-shadow: 0 1px 3px rgba(29, 78, 216, 0.1); }
+    .approval-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .approval-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-weight: 700; font-size: 0.75rem; }
+    .approval-badge.approved { background: #dcfce7; color: #166534; }
+    .approval-badge.review { background: #fef3c7; color: #b45309; }
+    .approval-badge.draft { background: #f3f4f6; color: #4b5563; }
+    .approval-time { font-size: 0.7rem; color: #6b7280; }
+    .approval-approver { display: block; color: #374151; font-weight: 600; margin-bottom: 3px; }
+    .approval-change { display: block; font-size: 0.75rem; color: #6b7280; font-style: italic; }
+
     .comments-section { background: #f8fafc; border: 1px dashed var(--border-color); border-radius: var(--radius-sm); padding: 14px 16px; }
     .comments-title { font-size: 0.82rem; font-weight: 700; color: var(--navy-blue); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
     .comment-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; max-height: 120px; overflow-y: auto; }
@@ -576,9 +590,10 @@
 
     let psisTopicsData = [];
     let commentsData = {};
+    let approvalsData = {};  // Track approvals: { cardId: [{ approver, timestamp, status }] }
     let selectedCards = new Set();
 
-    const SYNC_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzAhLNavKVoXepX7Amrqp1pMwCfX_xHLc3RFz_7VdetxURQZk4vNEhKcDxslyduEnts/exec';
+    const SYNC_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbz4wCGgFfpNujdP0-YcCzVNtkQq958__J5F4NE7I3zTyAwWHqljITtaBe3U8xX1eSzS/exec';
     const SYNC_TIMEOUT_MS = 10000;
 
     async function fetchRemoteSyncState() {
@@ -596,19 +611,127 @@
     async function pushRemoteSyncState() {
       if (!SYNC_BACKEND_URL) return null;
       try {
-        const payload = { psisTopicsData, commentsData };
+        const payload = { psisTopicsData, commentsData, approvalsData };
         const response = await fetch(SYNC_BACKEND_URL, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          // Google Apps Script web apps receive writes through doPost.
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(payload)
         });
         if (!response.ok) throw new Error(`Sync PUT failed: ${response.status}`);
         return await response.json();
       } catch (error) {
         console.warn('Remote sync push failed:', error);
+        // Remote PUT failed — we'll fall back to keeping local state and
+        // attempting a JSONP add for individual comments when available.
         return null;
       }
     }
+
+    // JSONP helper to send a single comment to an Apps Script endpoint that
+    // supports ?action=addComment&cardId=...&author=...&text=...&time=...&callback=cb
+    function jsonpSendComment(cardId, commentObj, timeout = 8000) {
+      if (!SYNC_BACKEND_URL) return Promise.resolve(null);
+      return new Promise((resolve) => {
+        const cbName = '__psis_jsonp_cb_' + Date.now();
+        window[cbName] = function(result) {
+          try { resolve(result); } finally { delete window[cbName]; script.remove(); }
+        };
+        const params = new URLSearchParams();
+        params.set('action', 'addComment');
+        params.set('cardId', cardId);
+        params.set('author', commentObj.author);
+        params.set('text', commentObj.text);
+        params.set('time', commentObj.time);
+        params.set('callback', cbName);
+        const script = document.createElement('script');
+        script.src = SYNC_BACKEND_URL + '?' + params.toString();
+        script.onerror = function() { resolve(null); delete window[cbName]; script.remove(); };
+        document.head.appendChild(script);
+        setTimeout(() => { if (window[cbName]) { resolve(null); delete window[cbName]; script.remove(); } }, timeout);
+      });
+    }
+
+    // Merge remote comments into local commentsData (avoid duplicates)
+    function mergeRemoteComments(remoteComments) {
+      if (!remoteComments) return false;
+      let changed = false;
+      Object.keys(remoteComments).forEach(cardId => {
+        const remoteList = remoteComments[cardId] || [];
+        if (!commentsData[cardId]) commentsData[cardId] = [];
+        remoteList.forEach(rc => {
+          const exists = commentsData[cardId].some(lc => lc.author === rc.author && lc.text === rc.text && lc.time === rc.time);
+          if (!exists) { commentsData[cardId].push(rc); changed = true; }
+        });
+      });
+      if (changed) { localStorage.setItem('psis_comments_data_v24', JSON.stringify(commentsData)); renderCards(); }
+      return changed;
+    }
+
+    function mergeRemoteState(remoteState) {
+      if (!remoteState) return false;
+      let changed = false;
+      if (Array.isArray(remoteState.psisTopicsData) && remoteState.psisTopicsData.length > 0) {
+        const remoteById = new Map(remoteState.psisTopicsData.map(card => [card.id, card]));
+        psisTopicsData.forEach((localCard, index) => {
+          const remoteCard = remoteById.get(localCard.id);
+          if (remoteCard && JSON.stringify(localCard) !== JSON.stringify(remoteCard)) {
+            psisTopicsData[index] = remoteCard;
+            changed = true;
+          }
+        });
+      }
+      if (remoteState.approvalsData) {
+        Object.entries(remoteState.approvalsData).forEach(([cardId, remoteList]) => {
+          if (!Array.isArray(remoteList)) return;
+          const localList = approvalsData[cardId] || (approvalsData[cardId] = []);
+          remoteList.forEach(remoteEntry => {
+            const exists = localList.some(localEntry => localEntry.approver === remoteEntry.approver && localEntry.status === remoteEntry.status && localEntry.timestamp === remoteEntry.timestamp);
+            if (!exists) { localList.push(remoteEntry); changed = true; }
+          });
+        });
+      }
+      if (mergeRemoteComments(remoteState.commentsData)) changed = true;
+      if (changed) {
+        localStorage.setItem('psis_topics_data_v24', JSON.stringify(psisTopicsData));
+        localStorage.setItem('psis_approvals_data_v24', JSON.stringify(approvalsData));
+      }
+      return changed;
+    }
+
+    // Poll remote state via JSONP (server must support ?action=get&callback=cb)
+    function pollRemoteStateJSONP(timeout = 8000) {
+      if (!SYNC_BACKEND_URL) return Promise.resolve(null);
+      return new Promise((resolve) => {
+        const cbName = '__psis_jsonp_get_' + Date.now();
+        window[cbName] = function(result) {
+          try { if (mergeRemoteState(result)) renderCards(); resolve(result); } finally { delete window[cbName]; script.remove(); }
+        };
+        const params = new URLSearchParams();
+        params.set('action', 'get');
+        params.set('callback', cbName);
+        const script = document.createElement('script');
+        script.src = SYNC_BACKEND_URL + '?' + params.toString();
+        script.onerror = function() { resolve(null); delete window[cbName]; script.remove(); };
+        document.head.appendChild(script);
+        setTimeout(() => { if (window[cbName]) { resolve(null); delete window[cbName]; script.remove(); } }, timeout);
+      });
+    }
+
+    // Refresh shared changes quickly for Chhit and Sivleng on different devices.
+    if (SYNC_BACKEND_URL) {
+      setTimeout(() => { pollRemoteStateJSONP(); }, 2000);
+      setInterval(() => { pollRemoteStateJSONP(); }, 5000);
+    }
+
+    // Changes made in another tab of the same browser are visible immediately.
+    window.addEventListener('storage', (event) => {
+      if (!['psis_topics_data_v24', 'psis_comments_data_v24', 'psis_approvals_data_v24'].includes(event.key)) return;
+      if (event.key === 'psis_topics_data_v24' && event.newValue) psisTopicsData = JSON.parse(event.newValue);
+      if (event.key === 'psis_comments_data_v24' && event.newValue) commentsData = JSON.parse(event.newValue);
+      if (event.key === 'psis_approvals_data_v24' && event.newValue) approvalsData = JSON.parse(event.newValue);
+      renderCards();
+    });
 
     async function loadData() {
       const savedUser = localStorage.getItem('psis_current_user');
@@ -634,12 +757,19 @@
         try { commentsData = JSON.parse(savedComments); } catch (e) { commentsData = {}; }
       }
 
+      const savedApprovals = localStorage.getItem('psis_approvals_data_v24');
+      if (savedApprovals) {
+        try { approvalsData = JSON.parse(savedApprovals); } catch (e) { approvalsData = {}; }
+      }
+
       const remoteState = await fetchRemoteSyncState();
       if (remoteState && Array.isArray(remoteState.psisTopicsData) && remoteState.psisTopicsData.length > 0) {
         psisTopicsData = remoteState.psisTopicsData;
         commentsData = remoteState.commentsData || {};
+        approvalsData = remoteState.approvalsData || {};
         localStorage.setItem('psis_topics_data_v24', JSON.stringify(psisTopicsData));
         localStorage.setItem('psis_comments_data_v24', JSON.stringify(commentsData));
+        localStorage.setItem('psis_approvals_data_v24', JSON.stringify(approvalsData));
       }
     }
 
@@ -12579,6 +12709,7 @@
 function saveData() {
       localStorage.setItem('psis_topics_data_v24', JSON.stringify(psisTopicsData));
       localStorage.setItem('psis_comments_data_v24', JSON.stringify(commentsData));
+      localStorage.setItem('psis_approvals_data_v24', JSON.stringify(approvalsData));
       if (SYNC_BACKEND_URL) {
         pushRemoteSyncState();
       }
@@ -12608,7 +12739,6 @@ function saveData() {
     }
 
     function renderCards() {
-      loadData();
       const container = document.getElementById('cardsGrid');
       const query = document.getElementById('searchInput').value.toLowerCase();
       
@@ -12729,6 +12859,25 @@ function saveData() {
                 <div class="caption-text" id="caption-${card.id}">${card.caption}</div>
               </div>
 
+              <!-- Approvals Tracking Section -->
+              <div class="approvals-section">
+                <div class="approvals-title"><i class="fa-solid fa-check-circle"></i> ឋានៈ Approval & Status Changes</div>
+                <div class="approval-list">
+                  ${approvalsData[card.id] && approvalsData[card.id].length > 0 ? approvalsData[card.id].map(a => `
+                    <div class="approval-item">
+                      <div class="approval-header">
+                        <span class="approval-badge ${a.status === 'Approved' ? 'approved' : a.status === 'Review Requested' ? 'review' : 'draft'}">
+                          ${a.status === 'Approved' ? '✅ Approved' : a.status === 'Review Requested' ? '🔍 Review Requested' : '📝 ' + a.status}
+                        </span>
+                        <span class="approval-time">${a.timestamp}</span>
+                      </div>
+                      <span class="approval-approver">ដោយ: <strong>${a.approver}</strong></span>
+                      <span class="approval-change">${a.previousStatus} → ${a.status}</span>
+                    </div>
+                  `).join('') : '<div style="font-size: 0.78rem; color: #94a3b8;">មិនទាន់មាន Approval ឡើយ...</div>'}
+                </div>
+              </div>
+
               <!-- Internal Comments Section -->
               <div class="comments-section">
                 <div class="comments-title"><i class="fa-regular fa-comments"></i> ទំនាក់ទំនង & ចំណាំប្រចាំ Card (Team Comments)</div>
@@ -12777,16 +12926,47 @@ function saveData() {
     function updateWorkflowStatus(cardId, newStatus) {
       const card = psisTopicsData.find(c => c.id === cardId);
       if (card) {
+        const oldStatus = card.workflowStatus || 'Draft';
         card.workflowStatus = newStatus;
         if (currentUser.name === 'Sivleng') {
           card.lastEditedBy = 'Sivleng';
           card.editedBySivleng = true;
         }
+
+        // Keep a shared history for every workflow choice: Draft, Review, and Approved.
+        if (!approvalsData[cardId]) approvalsData[cardId] = [];
+        if (oldStatus !== newStatus) {
+          approvalsData[cardId].push({
+            approver: `${currentUser.name} (${currentUser.role})`,
+            status: newStatus,
+            previousStatus: oldStatus,
+            timestamp: new Date().toLocaleString()
+          });
+        }
+
+        // Add a visible comment when Chhit approves a card.
+        if (newStatus === 'Approved' && currentUser.name === 'Chhit') {
+          // Auto-add approval comment
+          if (!commentsData[cardId]) commentsData[cardId] = [];
+          commentsData[cardId].push({
+            author: `🎉 ${currentUser.name} (${currentUser.role})`,
+            text: `✅ 승認្ដល់ Card នេះ - អនុម័តរួច ហើយផ្តើមលើក់វិញ!`,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          });
+        }
+        // Track status change comment for Review/Draft
+        else if (newStatus === 'Review' && currentUser.name === 'Sivleng') {
+          if (!commentsData[cardId]) commentsData[cardId] = [];
+          commentsData[cardId].push({
+            author: `${currentUser.name} (${currentUser.role})`,
+            text: `ស្នើឱ្យត្រួតពិនិត្យ - រៀបចំដែលមាន`,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          });
+        }
+
         saveData();
         showToast(`ប្តូរស្ថានភាពទៅ "${newStatus}" ដោយ ${currentUser.name}`);
         renderCards();
-
-        // NO AUTOMATIC TELEGRAM POPUP - Manual trigger via Notify button only!
       }
     }
 
@@ -12921,6 +13101,20 @@ function saveData() {
       saveData();
       showToast(`បានបន្ថែម Comment ក្នុងនាម ${currentUser.name}!`);
       renderCards();
+
+      // Try JSONP fallback to push single comment if server supports it.
+      const lastComment = commentsData[cardId][commentsData[cardId].length - 1];
+      if (typeof jsonpSendComment === 'function') {
+        jsonpSendComment(cardId, lastComment).then(res => {
+          if (res && res.ok) {
+            showToast('Comment synced to remote server.');
+          } else {
+            showToast('Comment saved locally; remote sync pending. Use Notify to share.');
+          }
+        }).catch(() => {
+          showToast('Comment saved locally; remote sync pending.');
+        });
+      }
     }
 
     function handleCommentKeyPress(e, cardId) {
