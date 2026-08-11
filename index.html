@@ -13262,7 +13262,7 @@ function saveData() {
       const element = document.getElementById(cardId);
       if (!element) return;
 
-      showToast('កំពុងរៀបចំទាញយករូបភាព Card (Flexible Layout)...');
+      showToast('កំពុងរៀបចំទាញយករូបភាព Card (Tight Fit)...');
 
       const actionsTop = element.querySelector('.card-actions-top');
       const checkbox = element.querySelector('.select-checkbox');
@@ -13282,7 +13282,7 @@ function saveData() {
           onclone: (clonedDoc) => {
             const clonedEl = clonedDoc.getElementById(cardId);
             if (clonedEl) {
-              // Master Flexible Container Styling
+              // Master Tight Container Styling - Eliminate all artificial grid height stretching
               clonedEl.style.contentVisibility = 'visible';
               clonedEl.style.transform = 'none';
               clonedEl.style.boxShadow = '0 10px 32px rgba(0, 0, 0, 0.06)';
@@ -13292,21 +13292,22 @@ function saveData() {
               clonedEl.style.border = '2px solid #e2e8f0';
               clonedEl.style.overflow = 'hidden';
               clonedEl.style.height = 'auto';
-              clonedEl.style.display = 'flex';
-              clonedEl.style.flexDirection = 'column';
-              clonedEl.style.justify = 'space-between';
+              clonedEl.style.minHeight = '0px';
+              clonedEl.style.display = 'block'; // Use block flow so banner attaches tightly to content
 
               // Hide top action controls, checkboxes, team comments, and approval history in PNG export
               const hideElements = clonedEl.querySelectorAll('.card-actions-top, .select-checkbox, .comment-input-row, .comments-section, .approvals-section');
               hideElements.forEach(el => el.style.setProperty('display', 'none', 'important'));
 
-              // Card Content Flexible Spacing
+              // Tight Content Wrapper
               const cardContent = clonedEl.querySelector('.card-content');
               if (cardContent) {
-                cardContent.style.padding = '24px 26px 8px 26px';
+                cardContent.style.padding = '24px 26px 16px 26px';
+                cardContent.style.flex = 'none';
+                cardContent.style.height = 'auto';
               }
 
-              // Ensure main title color is dark navy blue with flexible line height
+              // Main title styling
               const mainTitle = clonedEl.querySelector('.card-main-title');
               if (mainTitle) {
                 mainTitle.style.color = '#021a84';
@@ -13332,7 +13333,7 @@ function saveData() {
                 grid2col.style.gap = '18px';
               }
 
-              // Caption Box Spacing - remove bottom margin so it flows smoothly to banner
+              // Caption Box Spacing - clean 0px bottom margin because container padding handles spacing
               const captionBox = clonedEl.querySelector('.caption-box');
               if (captionBox) {
                 captionBox.style.marginBottom = '0px';
@@ -13343,7 +13344,7 @@ function saveData() {
               const textEls = clonedEl.querySelectorAll('.script-paragraph, .shot-list-item, .caption-text');
               textEls.forEach(el => el.style.color = '#334155');
 
-              // Ensure bottom banner is attached smoothly with flexible padding
+              // Ensure bottom banner attaches DIRECTLY under content with zero gap
               const banner = clonedEl.querySelector('.card-bottom-banner');
               if (banner) {
                 banner.style.background = '#021a84';
@@ -13351,7 +13352,7 @@ function saveData() {
                 banner.style.padding = '18px 26px';
                 banner.style.borderBottomLeftRadius = '18px';
                 banner.style.borderBottomRightRadius = '18px';
-                banner.style.marginTop = '16px';
+                banner.style.marginTop = '0px'; // Zero gap between content and banner!
               }
 
               // Force visibility on all content children inside cloned element
@@ -13372,7 +13373,7 @@ function saveData() {
         document.body.appendChild(link);
         link.click();
         link.remove();
-        showToast('បាន Download រូបភាព Card (Flexible Content Only)!');
+        showToast('បាន Download រូបភាព Card (Tight Fit - គ្មានចន្លោះទំនេរ)!');
       } catch (err) {
         console.error('PNG Export Error:', err);
         showToast('មានបញ្ហាក្នុងការបង្កើតរូបភាព PNG!');
