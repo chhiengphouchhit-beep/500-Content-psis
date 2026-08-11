@@ -13262,12 +13262,13 @@ function saveData() {
       const element = document.getElementById(cardId);
       if (!element) return;
 
-      showToast('កំពុងរៀបចំទាញយករូបភាព Card (Perfect Crop)...');
+      showToast('កំពុងរៀបចំទាញយករូបភាព Card (Exact Target Size)...');
 
-      // 1. Save original live DOM styles
+      // Save original live DOM styles & displays
       const originalHeight = element.style.height;
       const originalMinHeight = element.style.minHeight;
       const originalAlignSelf = element.style.alignSelf;
+      const originalBoxShadow = element.style.boxShadow;
 
       const actionsTop = element.querySelector('.card-actions-top');
       const checkbox = element.querySelector('.select-checkbox');
@@ -13281,7 +13282,7 @@ function saveData() {
       const commentsDisplay = commentsSection ? commentsSection.style.display : '';
       const approvalsDisplay = approvalsSection ? approvalsSection.style.display : '';
 
-      // 2. Temporarily collapse live DOM element height to pure content
+      // Collapse live DOM element height & strip box-shadow temporarily so measuring & canvas capture are pixel-exact
       if (actionsTop) actionsTop.style.display = 'none';
       if (checkbox) checkbox.style.display = 'none';
       if (commentInput) commentInput.style.display = 'none';
@@ -13291,11 +13292,12 @@ function saveData() {
       element.style.height = 'auto';
       element.style.minHeight = '0px';
       element.style.alignSelf = 'start';
+      element.style.boxShadow = 'none';
 
-      // Measure exact pixel bounds after DOM layout reflow
-      const exactRect = element.getBoundingClientRect();
-      const exactWidth = Math.ceil(exactRect.width);
-      const exactHeight = Math.ceil(exactRect.height);
+      // Force layout reflow and measure exact outer border box
+      const rect = element.getBoundingClientRect();
+      const targetWidth = Math.round(rect.width);
+      const targetHeight = Math.round(rect.height);
 
       try {
         const canvas = await html2canvas(element, {
@@ -13304,8 +13306,8 @@ function saveData() {
           allowTaint: true,
           backgroundColor: '#ffffff',
           logging: false,
-          width: exactWidth,
-          height: exactHeight,
+          width: targetWidth,
+          height: targetHeight,
           onclone: (clonedDoc) => {
             const clonedEl = clonedDoc.getElementById(cardId);
             if (clonedEl) {
@@ -13317,15 +13319,16 @@ function saveData() {
               clonedEl.style.borderRadius = '20px';
               clonedEl.style.border = '2px solid #e2e8f0';
               clonedEl.style.overflow = 'hidden';
-              clonedEl.style.height = `${exactHeight}px`;
-              clonedEl.style.minHeight = '0px';
-              clonedEl.style.margin = '0';
-              clonedEl.style.padding = '0';
+              clonedEl.style.width = `${targetWidth}px`;
+              clonedEl.style.height = `${targetHeight}px`;
+              clonedEl.style.margin = '0px';
+              clonedEl.style.padding = '0px';
+              clonedEl.style.display = 'block';
 
               const cardContent = clonedEl.querySelector('.card-content');
               if (cardContent) {
                 cardContent.style.padding = '24px 26px 0px 26px';
-                cardContent.style.margin = '0';
+                cardContent.style.margin = '0px';
               }
 
               const badgeBar = clonedEl.querySelector('.badge-bar');
@@ -13385,15 +13388,15 @@ function saveData() {
         document.body.appendChild(link);
         link.click();
         link.remove();
-        showToast('បាន Download រូបភាព Card (Perfect Height Crop)!');
+        showToast('បាន Download រូបភាព Card (ទំហំស្មើគំរូ 100%)!');
       } catch (err) {
         console.error('PNG Export Error:', err);
         showToast('មានបញ្ហាក្នុងការបង្កើតរូបភាព PNG!');
       } finally {
-        // 3. Restore live DOM element styles
         element.style.height = originalHeight;
         element.style.minHeight = originalMinHeight;
         element.style.alignSelf = originalAlignSelf;
+        element.style.boxShadow = originalBoxShadow;
 
         if (actionsTop) actionsTop.style.display = actionsDisplay;
         if (checkbox) checkbox.style.display = checkboxDisplay;
