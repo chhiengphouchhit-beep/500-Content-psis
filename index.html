@@ -515,16 +515,19 @@
   <header class="header-container">
     <div class="user-switcher-bar">
       <div class="user-switcher-label">
-        <i class="fa-solid fa-users-gear" style="color: var(--navy-blue);"></i> ប្រព័ន្ធសហការ Chhit & Sivleng:
+        <i class="fa-solid fa-users-gear" style="color: var(--navy-blue);"></i> អ្នកប្រើយន្តការ:
       </div>
-      <div class="user-pill active" id="userPillChhit" onclick="switchUser('Chhit', 'Admin')">
+      <button class="user-pill active" id="userBtnChhit" onclick="switchUser('Chhit', 'Admin')">
         <i class="fa-solid fa-user-shield" style="color: #021a84;"></i> Chhit (Admin)
-      </div>
-      <div class="user-pill" id="userPillSivleng" onclick="switchUser('Sivleng', 'Editor')">
+      </button>
+      <button class="user-pill" id="userBtnSivleng" onclick="switchUser('Sivleng', 'Editor')">
         <i class="fa-solid fa-user-pen" style="color: #8b5cf6;"></i> Sivleng (Editor)
-      </div>
+      </button>
       <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleTheme()">
         <i class="fa-solid fa-moon"></i> <span id="themeToggleLabel">Dark Mode</span>
+      </button>
+      <button class="theme-toggle-btn" onclick="restoreMasterDataset()" title="Restore All 500 Cards" style="background: #fff1f2; color: #e11d48; border-color: #fecdd3;">
+        <i class="fa-solid fa-rotate-left"></i> Restore 500 Cards
       </button>
       <div class="sync-status-badge" style="font-size: 0.8rem; font-weight: 700; color: #10b981; display: inline-flex; align-items: center; gap: 6px; background: #ecfdf5; padding: 6px 14px; border-radius: 20px; border: 1px solid #a7f3d0;">
         <i class="fa-solid fa-circle" style="font-size: 0.55rem; color: #10b981;"></i> Realtime Sync Active
@@ -713,18 +716,26 @@
       currentUser = { name, role };
       localStorage.setItem('psis_current_user', JSON.stringify(currentUser));
 
-      const btnChhit = document.getElementById('userBtnChhit');
-      const btnSivleng = document.getElementById('userBtnSivleng');
+      const btnChhit = document.getElementById('userBtnChhit') || document.getElementById('userPillChhit');
+      const btnSivleng = document.getElementById('userBtnSivleng') || document.getElementById('userPillSivleng');
       const welcomeSubtitle = document.getElementById('userWelcomeSubtitle');
 
-      if (name === 'Chhit') {
-        btnChhit.classList.add('active');
-        btnSivleng.classList.remove('active');
-        welcomeSubtitle.innerHTML = `សូមស្វាគមន៍លោក <strong>Chhit (Admin)</strong> មកកាន់ប្រព័ន្ធគ្រប់គ្រងមាតិកា!`;
-      } else {
-        btnSivleng.classList.add('active');
-        btnChhit.classList.remove('active');
-        welcomeSubtitle.innerHTML = `សូមស្វាគមន៍អ្នកនាង <strong>Sivleng (Editor)</strong> មកកាន់ប្រព័ន្ធគ្រប់គ្រងមាតិកា!`;
+      if (btnChhit && btnSivleng) {
+        if (name === 'Chhit') {
+          btnChhit.classList.add('active');
+          btnSivleng.classList.remove('active');
+        } else {
+          btnSivleng.classList.add('active');
+          btnChhit.classList.remove('active');
+        }
+      }
+
+      if (welcomeSubtitle) {
+        if (name === 'Chhit') {
+          welcomeSubtitle.innerHTML = `សូមស្វាគមន៍លោក <strong>Chhit (Admin)</strong> មកកាន់ប្រព័ន្ធគ្រប់គ្រងមាតិកា!`;
+        } else {
+          welcomeSubtitle.innerHTML = `សូមស្វាគមន៍អ្នកនាង <strong>Sivleng (Editor)</strong> មកកាន់ប្រព័ន្ធគ្រប់គ្រងមាតិកា!`;
+        }
       }
 
       showToast(`ផ្លាស់ប្តូរគណនីទៅជា "${name} (${role})"`);
