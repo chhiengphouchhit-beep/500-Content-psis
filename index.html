@@ -387,7 +387,70 @@
     .comment-input { flex: 1; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border-color); font-size: 0.82rem; outline: none; }
     .btn-send-comment { background: var(--navy-blue); color: #ffffff; border: none; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
 
-    .card-bottom-banner { background: linear-gradient(180deg, var(--navy-dark) 0%, var(--navy-blue) 100%); color: #ffffff; padding: 20px 28px; }
+    .card-container {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      border: 2px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: var(--transition);
+      content-visibility: visible;
+    }
+
+    .card-bottom-banner {
+      background: #021a84 !important;
+      color: #ffffff !important;
+      padding: 20px 26px !important;
+      border-bottom-left-radius: 18px;
+      border-bottom-right-radius: 18px;
+      margin-top: 16px;
+    }
+
+    .banner-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .banner-label {
+      font-size: 0.8rem;
+      color: #94a3b8 !important;
+      font-weight: 600;
+    }
+
+    .banner-cta-badge {
+      background-color: #c01b1b !important;
+      color: #ffffff !important;
+      font-size: 0.84rem;
+      font-weight: 700;
+      padding: 6px 16px;
+      border-radius: 20px;
+      display: inline-block;
+    }
+
+    .campus-tags {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #ffffff !important;
+      margin-bottom: 4px;
+    }
+
+    .offer-title {
+      font-size: 1.55rem;
+      font-weight: 800;
+      color: #f59e0b !important;
+      margin-bottom: 4px;
+      line-height: 1.2;
+    }
+
+    .banner-footer-note {
+      font-size: 0.8rem;
+      color: #cbd5e1 !important;
+    }
     .banner-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .banner-label { font-size: 0.8rem; color: #94a3b8; }
     .banner-cta-badge { background-color: var(--bright-red); font-size: 0.8rem; font-weight: 700; padding: 4px 14px; border-radius: 20px; }
@@ -13204,43 +13267,67 @@ function saveData() {
       const actionsTop = element.querySelector('.card-actions-top');
       const checkbox = element.querySelector('.select-checkbox');
       const commentInput = element.querySelector('.comment-input-row');
-      if (actionsTop) actionsTop.style.visibility = 'hidden';
-      if (checkbox) checkbox.style.visibility = 'hidden';
+      
+      if (actionsTop) actionsTop.style.display = 'none';
+      if (checkbox) checkbox.style.display = 'none';
       if (commentInput) commentInput.style.display = 'none';
-
-      const computedStyle = window.getComputedStyle(element);
-      const bgColor = computedStyle.backgroundColor || '#ffffff';
-
-      // Save initial style overrides
-      const originalCV = element.style.contentVisibility;
-      element.style.contentVisibility = 'visible';
 
       try {
         const canvas = await html2canvas(element, {
           scale: 2,
           useCORS: true,
           allowTaint: true,
-          backgroundColor: bgColor,
+          backgroundColor: '#ffffff',
           logging: false,
           onclone: (clonedDoc) => {
             const clonedEl = clonedDoc.getElementById(cardId);
             if (clonedEl) {
               clonedEl.style.contentVisibility = 'visible';
               clonedEl.style.transform = 'none';
-              clonedEl.style.boxShadow = 'none';
-              clonedEl.style.overflow = 'visible';
+              clonedEl.style.boxShadow = '0 8px 30px rgba(0,0,0,0.08)';
+              clonedEl.style.background = '#ffffff';
+              clonedEl.style.color = '#1e293b';
+              clonedEl.style.borderRadius = '20px';
+              clonedEl.style.border = '2px solid #e2e8f0';
+              clonedEl.style.overflow = 'hidden';
               clonedEl.style.height = 'auto';
-              
+
+              // Hide top action controls & checkboxes in canvas clone
+              const hideElements = clonedEl.querySelectorAll('.card-actions-top, .select-checkbox, .comment-input-row');
+              hideElements.forEach(el => el.style.display = 'none');
+
+              // Ensure main title color is dark navy blue
+              const mainTitle = clonedEl.querySelector('.card-main-title');
+              if (mainTitle) mainTitle.style.color = '#021a84';
+
+              // Ensure objective box styling
+              const objBox = clonedEl.querySelector('.objective-box');
+              if (objBox) {
+                objBox.style.backgroundColor = '#fff5f5';
+                objBox.style.borderColor = '#fed7d7';
+              }
+              const objText = clonedEl.querySelector('.objective-text');
+              if (objText) objText.style.color = '#334155';
+
+              // Force bright text & white bg across inner containers
+              const textEls = clonedEl.querySelectorAll('.script-paragraph, .shot-list-item, .caption-text, .comment-item');
+              textEls.forEach(el => el.style.color = '#334155');
+
+              // Ensure bottom banner is solid navy blue with gold offer
+              const banner = clonedEl.querySelector('.card-bottom-banner');
+              if (banner) {
+                banner.style.background = '#021a84';
+                banner.style.color = '#ffffff';
+                banner.style.padding = '20px 26px';
+                banner.style.borderBottomLeftRadius = '18px';
+                banner.style.borderBottomRightRadius = '18px';
+                banner.style.marginTop = '16px';
+              }
+
               // Force visibility on all children inside cloned element
               const allChildren = clonedEl.querySelectorAll('*');
               allChildren.forEach(child => {
                 child.style.contentVisibility = 'visible';
-                if (child.classList.contains('card-actions-top') || child.classList.contains('select-checkbox')) {
-                  child.style.visibility = 'hidden';
-                }
-                if (child.classList.contains('comment-input-row')) {
-                  child.style.display = 'none';
-                }
               });
             }
           }
@@ -13258,9 +13345,8 @@ function saveData() {
         console.error('PNG Export Error:', err);
         showToast('មានបញ្ហាក្នុងការបង្កើតរូបភាព PNG!');
       } finally {
-        element.style.contentVisibility = originalCV;
-        if (actionsTop) actionsTop.style.visibility = 'visible';
-        if (checkbox) checkbox.style.visibility = 'visible';
+        if (actionsTop) actionsTop.style.display = 'flex';
+        if (checkbox) checkbox.style.display = 'inline-block';
         if (commentInput) commentInput.style.display = 'flex';
       }
     }
