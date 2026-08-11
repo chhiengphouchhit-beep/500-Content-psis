@@ -864,7 +864,7 @@
     // Refresh shared changes quickly for Chhit and Sivleng on different devices.
     if (SYNC_BACKEND_URL) {
       setTimeout(() => { pollRemoteStateJSONP(); }, 2000);
-      setInterval(() => { pollRemoteStateJSONP(); }, 5000);
+      setInterval(() => { pollRemoteStateJSONP(); }, 1000);
     }
 
     // Changes made in another tab of the same browser are visible immediately.
