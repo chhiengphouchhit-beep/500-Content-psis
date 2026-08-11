@@ -13262,7 +13262,7 @@ function saveData() {
       const element = document.getElementById(cardId);
       if (!element) return;
 
-      showToast('កំពុងរៀបចំទាញយករូបភាព Card...');
+      showToast('កំពុងរៀបចំទាញយករូបភាព Card (Content Only)...');
 
       const actionsTop = element.querySelector('.card-actions-top');
       const checkbox = element.querySelector('.select-checkbox');
@@ -13292,9 +13292,9 @@ function saveData() {
               clonedEl.style.overflow = 'hidden';
               clonedEl.style.height = 'auto';
 
-              // Hide top action controls & checkboxes in canvas clone
-              const hideElements = clonedEl.querySelectorAll('.card-actions-top, .select-checkbox, .comment-input-row');
-              hideElements.forEach(el => el.style.display = 'none');
+              // Hide top action controls, checkboxes, team comments, and approval history in PNG export
+              const hideElements = clonedEl.querySelectorAll('.card-actions-top, .select-checkbox, .comment-input-row, .comments-section, .approvals-section');
+              hideElements.forEach(el => el.style.setProperty('display', 'none', 'important'));
 
               // Ensure main title color is dark navy blue
               const mainTitle = clonedEl.querySelector('.card-main-title');
@@ -13310,7 +13310,7 @@ function saveData() {
               if (objText) objText.style.color = '#334155';
 
               // Force bright text & white bg across inner containers
-              const textEls = clonedEl.querySelectorAll('.script-paragraph, .shot-list-item, .caption-text, .comment-item');
+              const textEls = clonedEl.querySelectorAll('.script-paragraph, .shot-list-item, .caption-text');
               textEls.forEach(el => el.style.color = '#334155');
 
               // Ensure bottom banner is solid navy blue with gold offer
@@ -13324,10 +13324,12 @@ function saveData() {
                 banner.style.marginTop = '16px';
               }
 
-              // Force visibility on all children inside cloned element
+              // Force visibility on all content children inside cloned element
               const allChildren = clonedEl.querySelectorAll('*');
               allChildren.forEach(child => {
-                child.style.contentVisibility = 'visible';
+                if (!child.classList.contains('comments-section') && !child.classList.contains('approvals-section') && !child.classList.contains('card-actions-top') && !child.classList.contains('select-checkbox') && !child.classList.contains('comment-input-row')) {
+                  child.style.contentVisibility = 'visible';
+                }
               });
             }
           }
@@ -13340,7 +13342,7 @@ function saveData() {
         document.body.appendChild(link);
         link.click();
         link.remove();
-        showToast('បាន Download រូបភាព Card (PNG) រក្សាទុក!');
+        showToast('បាន Download រូបភាព Card (Content Only - គ្មាន Comment)!');
       } catch (err) {
         console.error('PNG Export Error:', err);
         showToast('មានបញ្ហាក្នុងការបង្កើតរូបភាព PNG!');
