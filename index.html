@@ -882,16 +882,29 @@
         try { currentUser = JSON.parse(savedUser); } catch(e) {}
       }
 
+      const masterDataset = buildMasterDatasetFromUserTitles();
+      let localTopics = [];
       const saved = localStorage.getItem('psis_topics_data_v24');
       if (saved) {
-        try { psisTopicsData = JSON.parse(saved); } catch (e) { psisTopicsData = buildMasterDatasetFromUserTitles(); }
-      } else {
-        psisTopicsData = buildMasterDatasetFromUserTitles();
+        try { localTopics = JSON.parse(saved); } catch (e) {}
       }
 
-      // BULLETPROOF SAFEGUARD: If empty or invalid on fresh GitHub Pages deploy, force populate master dataset!
-      if (!psisTopicsData || !Array.isArray(psisTopicsData) || psisTopicsData.length === 0) {
-        psisTopicsData = buildMasterDatasetFromUserTitles();
+      // Always guarantee full 497+ master dataset cards are present
+      if (Array.isArray(localTopics) && localTopics.length >= masterDataset.length) {
+        psisTopicsData = localTopics;
+      } else if (Array.isArray(localTopics) && localTopics.length > 0) {
+        const localMap = new Map(localTopics.map(c => [c.id, c]));
+        psisTopicsData = masterDataset.map(mc => localMap.has(mc.id) ? { ...mc, ...localMap.get(mc.id) } : mc);
+        localTopics.filter(c => c.id.startsWith('card-custom-')).forEach(cc => {
+          if (!psisTopicsData.some(p => p.id === cc.id)) psisTopicsData.unshift(cc);
+        });
+      } else {
+        psisTopicsData = masterDataset;
+      }
+
+      // Force recovery if dataset is missing or corrupted
+      if (!psisTopicsData || !Array.isArray(psisTopicsData) || psisTopicsData.length < 450) {
+        psisTopicsData = masterDataset;
         saveData();
       }
 
@@ -905,14 +918,39 @@
         try { approvalsData = JSON.parse(savedApprovals); } catch (e) { approvalsData = {}; }
       }
 
-      const remoteState = await fetchRemoteSyncState();
-      if (remoteState && Array.isArray(remoteState.psisTopicsData) && remoteState.psisTopicsData.length > 0) {
-        psisTopicsData = remoteState.psisTopicsData;
-        commentsData = remoteState.commentsData || {};
-        approvalsData = remoteState.approvalsData || {};
-        localStorage.setItem('psis_topics_data_v24', JSON.stringify(psisTopicsData));
-        localStorage.setItem('psis_comments_data_v24', JSON.stringify(commentsData));
-        localStorage.setItem('psis_approvals_data_v24', JSON.stringify(approvalsData));
+      // Protect dataset from remote sync wipeout
+      try {
+        const remoteState = await fetchRemoteSyncState();
+        if (remoteState && Array.isArray(remoteState.psisTopicsData) && remoteState.psisTopicsData.length >= 450) {
+          psisTopicsData = remoteState.psisTopicsData;
+          if (remoteState.commentsData) commentsData = remoteState.commentsData;
+          if (remoteState.approvalsData) approvalsData = remoteState.approvalsData;
+          saveData();
+        } else if (remoteState && Array.isArray(remoteState.psisTopicsData)) {
+          // Update status/comments without dropping master cards
+          const remoteMap = new Map(remoteState.psisTopicsData.map(c => [c.id, c]));
+          psisTopicsData.forEach((card, idx) => {
+            if (remoteMap.has(card.id)) {
+              const rc = remoteMap.get(card.id);
+              if (rc.workflowStatus) psisTopicsData[idx].workflowStatus = rc.workflowStatus;
+              if (rc.lastEditedBy) psisTopicsData[idx].lastEditedBy = rc.lastEditedBy;
+              if (rc.editedBySivleng) psisTopicsData[idx].editedBySivleng = rc.editedBySivleng;
+            }
+          });
+          if (remoteState.commentsData) mergeRemoteComments(remoteState.commentsData);
+          saveData();
+        }
+      } catch (err) {
+        console.warn('Remote sync fetch skipped:', err);
+      }
+    }
+
+    function restoreMasterDataset() {
+      if (confirm('តើអ្នកពិតជាចង់ស្ដារ (Restore) មាតិកាទាំងអស់ 500 Cards ឡើងវិញមែនទេ?')) {
+        psisTopicsData = buildMasterDatasetFromUserTitles();
+        saveData();
+        renderCards();
+        showToast('បានស្ដារមាតិកាទាំង 500 Cards ឡើងវិញជោគជ័យ!');
       }
     }
 
