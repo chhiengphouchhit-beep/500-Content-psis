@@ -299,7 +299,7 @@
       flex-direction: column;
       justify-content: space-between;
       transition: var(--transition);
-      content-visibility: auto; /* Browser performance optimization */
+      content-visibility: visible; /* Browser performance optimization */
     }
 
     .card-container.is-pending-review { border-color: var(--gold-accent); box-shadow: 0 12px 32px rgba(245, 158, 11, 0.15); }
@@ -13211,6 +13211,10 @@ function saveData() {
       const computedStyle = window.getComputedStyle(element);
       const bgColor = computedStyle.backgroundColor || '#ffffff';
 
+      // Save initial style overrides
+      const originalCV = element.style.contentVisibility;
+      element.style.contentVisibility = 'visible';
+
       try {
         const canvas = await html2canvas(element, {
           scale: 2,
@@ -13221,8 +13225,23 @@ function saveData() {
           onclone: (clonedDoc) => {
             const clonedEl = clonedDoc.getElementById(cardId);
             if (clonedEl) {
+              clonedEl.style.contentVisibility = 'visible';
               clonedEl.style.transform = 'none';
               clonedEl.style.boxShadow = 'none';
+              clonedEl.style.overflow = 'visible';
+              clonedEl.style.height = 'auto';
+              
+              // Force visibility on all children inside cloned element
+              const allChildren = clonedEl.querySelectorAll('*');
+              allChildren.forEach(child => {
+                child.style.contentVisibility = 'visible';
+                if (child.classList.contains('card-actions-top') || child.classList.contains('select-checkbox')) {
+                  child.style.visibility = 'hidden';
+                }
+                if (child.classList.contains('comment-input-row')) {
+                  child.style.display = 'none';
+                }
+              });
             }
           }
         });
@@ -13239,6 +13258,7 @@ function saveData() {
         console.error('PNG Export Error:', err);
         showToast('មានបញ្ហាក្នុងការបង្កើតរូបភាព PNG!');
       } finally {
+        element.style.contentVisibility = originalCV;
         if (actionsTop) actionsTop.style.visibility = 'visible';
         if (checkbox) checkbox.style.visibility = 'visible';
         if (commentInput) commentInput.style.display = 'flex';
