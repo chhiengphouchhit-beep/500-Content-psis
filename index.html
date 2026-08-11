@@ -13262,7 +13262,7 @@ function saveData() {
       const element = document.getElementById(cardId);
       if (!element) return;
 
-      showToast('កំពុងរៀបចំទាញយករូបភាព Card (Tight Fit)...');
+      showToast('កំពុងរៀបចំទាញយករូបភាព Card (Pixel Perfect Layout)...');
 
       const actionsTop = element.querySelector('.card-actions-top');
       const checkbox = element.querySelector('.select-checkbox');
@@ -13282,10 +13282,10 @@ function saveData() {
           onclone: (clonedDoc) => {
             const clonedEl = clonedDoc.getElementById(cardId);
             if (clonedEl) {
-              // Master Tight Container Styling - Eliminate all artificial grid height stretching
+              // Outer Card Container Precision Styling
               clonedEl.style.contentVisibility = 'visible';
               clonedEl.style.transform = 'none';
-              clonedEl.style.boxShadow = '0 10px 32px rgba(0, 0, 0, 0.06)';
+              clonedEl.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.05)';
               clonedEl.style.background = '#ffffff';
               clonedEl.style.color = '#1e293b';
               clonedEl.style.borderRadius = '20px';
@@ -13293,26 +13293,42 @@ function saveData() {
               clonedEl.style.overflow = 'hidden';
               clonedEl.style.height = 'auto';
               clonedEl.style.minHeight = '0px';
-              clonedEl.style.display = 'block'; // Use block flow so banner attaches tightly to content
+              clonedEl.style.maxHeight = 'none';
+              clonedEl.style.display = 'block';
+              clonedEl.style.margin = '0';
+              clonedEl.style.padding = '0';
 
               // Hide top action controls, checkboxes, team comments, and approval history in PNG export
               const hideElements = clonedEl.querySelectorAll('.card-actions-top, .select-checkbox, .comment-input-row, .comments-section, .approvals-section');
-              hideElements.forEach(el => el.style.setProperty('display', 'none', 'important'));
+              hideElements.forEach(el => {
+                el.style.setProperty('display', 'none', 'important');
+                el.style.setProperty('margin', '0', 'important');
+                el.style.setProperty('padding', '0', 'important');
+                el.style.setProperty('height', '0', 'important');
+              });
 
-              // Tight Content Wrapper
+              // Card Content Wrapper - Padding 24px top/left/right, 0px bottom so banner connects seamlessly
               const cardContent = clonedEl.querySelector('.card-content');
               if (cardContent) {
-                cardContent.style.padding = '24px 26px 16px 26px';
+                cardContent.style.padding = '24px 26px 0px 26px';
+                cardContent.style.margin = '0';
                 cardContent.style.flex = 'none';
                 cardContent.style.height = 'auto';
               }
 
-              // Main title styling
+              // Badges Bar
+              const badgeBar = clonedEl.querySelector('.badge-bar');
+              if (badgeBar) {
+                badgeBar.style.marginBottom = '14px';
+              }
+
+              // Main Title Styling
               const mainTitle = clonedEl.querySelector('.card-main-title');
               if (mainTitle) {
                 mainTitle.style.color = '#021a84';
                 mainTitle.style.marginBottom = '16px';
                 mainTitle.style.fontSize = '1.35rem';
+                mainTitle.style.lineHeight = '1.4';
               }
 
               // Objective Box Spacing
@@ -13333,10 +13349,10 @@ function saveData() {
                 grid2col.style.gap = '18px';
               }
 
-              // Caption Box Spacing - clean 0px bottom margin because container padding handles spacing
+              // Caption Box Spacing - exactly 20px spacing before the bottom banner
               const captionBox = clonedEl.querySelector('.caption-box');
               if (captionBox) {
-                captionBox.style.marginBottom = '0px';
+                captionBox.style.marginBottom = '20px';
                 captionBox.style.padding = '14px 16px';
               }
 
@@ -13344,7 +13360,7 @@ function saveData() {
               const textEls = clonedEl.querySelectorAll('.script-paragraph, .shot-list-item, .caption-text');
               textEls.forEach(el => el.style.color = '#334155');
 
-              // Ensure bottom banner attaches DIRECTLY under content with zero gap
+              // Bottom Banner - exact attachment at bottom edge with zero gap
               const banner = clonedEl.querySelector('.card-bottom-banner');
               if (banner) {
                 banner.style.background = '#021a84';
@@ -13352,7 +13368,8 @@ function saveData() {
                 banner.style.padding = '18px 26px';
                 banner.style.borderBottomLeftRadius = '18px';
                 banner.style.borderBottomRightRadius = '18px';
-                banner.style.marginTop = '0px'; // Zero gap between content and banner!
+                banner.style.marginTop = '0px';
+                banner.style.marginBottom = '0px';
               }
 
               // Force visibility on all content children inside cloned element
@@ -13373,7 +13390,7 @@ function saveData() {
         document.body.appendChild(link);
         link.click();
         link.remove();
-        showToast('បាន Download រូបភាព Card (Tight Fit - គ្មានចន្លោះទំនេរ)!');
+        showToast('បាន Download រូបភាព Card (Pixel Perfect Layout)!');
       } catch (err) {
         console.error('PNG Export Error:', err);
         showToast('មានបញ្ហាក្នុងការបង្កើតរូបភាព PNG!');
