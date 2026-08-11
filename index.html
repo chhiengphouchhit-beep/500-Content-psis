@@ -13262,7 +13262,7 @@ function saveData() {
       const element = document.getElementById(cardId);
       if (!element) return;
 
-      showToast('កំពុងរៀបចំទាញយករូបភាព Card (Content Only)...');
+      showToast('កំពុងរៀបចំទាញយករូបភាព Card (Flexible Layout)...');
 
       const actionsTop = element.querySelector('.card-actions-top');
       const checkbox = element.querySelector('.select-checkbox');
@@ -13282,43 +13282,73 @@ function saveData() {
           onclone: (clonedDoc) => {
             const clonedEl = clonedDoc.getElementById(cardId);
             if (clonedEl) {
+              // Master Flexible Container Styling
               clonedEl.style.contentVisibility = 'visible';
               clonedEl.style.transform = 'none';
-              clonedEl.style.boxShadow = '0 8px 30px rgba(0,0,0,0.08)';
+              clonedEl.style.boxShadow = '0 10px 32px rgba(0, 0, 0, 0.06)';
               clonedEl.style.background = '#ffffff';
               clonedEl.style.color = '#1e293b';
               clonedEl.style.borderRadius = '20px';
               clonedEl.style.border = '2px solid #e2e8f0';
               clonedEl.style.overflow = 'hidden';
               clonedEl.style.height = 'auto';
+              clonedEl.style.display = 'flex';
+              clonedEl.style.flexDirection = 'column';
+              clonedEl.style.justify = 'space-between';
 
               // Hide top action controls, checkboxes, team comments, and approval history in PNG export
               const hideElements = clonedEl.querySelectorAll('.card-actions-top, .select-checkbox, .comment-input-row, .comments-section, .approvals-section');
               hideElements.forEach(el => el.style.setProperty('display', 'none', 'important'));
 
-              // Ensure main title color is dark navy blue
-              const mainTitle = clonedEl.querySelector('.card-main-title');
-              if (mainTitle) mainTitle.style.color = '#021a84';
+              // Card Content Flexible Spacing
+              const cardContent = clonedEl.querySelector('.card-content');
+              if (cardContent) {
+                cardContent.style.padding = '24px 26px 8px 26px';
+              }
 
-              // Ensure objective box styling
+              // Ensure main title color is dark navy blue with flexible line height
+              const mainTitle = clonedEl.querySelector('.card-main-title');
+              if (mainTitle) {
+                mainTitle.style.color = '#021a84';
+                mainTitle.style.marginBottom = '16px';
+                mainTitle.style.fontSize = '1.35rem';
+              }
+
+              // Objective Box Spacing
               const objBox = clonedEl.querySelector('.objective-box');
               if (objBox) {
                 objBox.style.backgroundColor = '#fff5f5';
                 objBox.style.borderColor = '#fed7d7';
+                objBox.style.marginBottom = '16px';
+                objBox.style.padding = '14px 16px';
               }
               const objText = clonedEl.querySelector('.objective-text');
               if (objText) objText.style.color = '#334155';
 
-              // Force bright text & white bg across inner containers
+              // 2-Column Grid Spacing
+              const grid2col = clonedEl.querySelector('.grid-2col');
+              if (grid2col) {
+                grid2col.style.marginBottom = '16px';
+                grid2col.style.gap = '18px';
+              }
+
+              // Caption Box Spacing - remove bottom margin so it flows smoothly to banner
+              const captionBox = clonedEl.querySelector('.caption-box');
+              if (captionBox) {
+                captionBox.style.marginBottom = '0px';
+                captionBox.style.padding = '14px 16px';
+              }
+
+              // Force bright text & white bg across inner content
               const textEls = clonedEl.querySelectorAll('.script-paragraph, .shot-list-item, .caption-text');
               textEls.forEach(el => el.style.color = '#334155');
 
-              // Ensure bottom banner is solid navy blue with gold offer
+              // Ensure bottom banner is attached smoothly with flexible padding
               const banner = clonedEl.querySelector('.card-bottom-banner');
               if (banner) {
                 banner.style.background = '#021a84';
                 banner.style.color = '#ffffff';
-                banner.style.padding = '20px 26px';
+                banner.style.padding = '18px 26px';
                 banner.style.borderBottomLeftRadius = '18px';
                 banner.style.borderBottomRightRadius = '18px';
                 banner.style.marginTop = '16px';
@@ -13342,7 +13372,7 @@ function saveData() {
         document.body.appendChild(link);
         link.click();
         link.remove();
-        showToast('បាន Download រូបភាព Card (Content Only - គ្មាន Comment)!');
+        showToast('បាន Download រូបភាព Card (Flexible Content Only)!');
       } catch (err) {
         console.error('PNG Export Error:', err);
         showToast('មានបញ្ហាក្នុងការបង្កើតរូបភាព PNG!');
