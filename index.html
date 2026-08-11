@@ -514,15 +514,21 @@
 
   <header class="header-container">
     <div class="user-switcher-bar">
-
+      <div class="user-switcher-label">
+        <i class="fa-solid fa-users-gear" style="color: var(--navy-blue);"></i> ប្រព័ន្ធសហការ Chhit & Sivleng:
+      </div>
+      <div class="user-pill active" id="userPillChhit" onclick="switchUser('Chhit', 'Admin')">
+        <i class="fa-solid fa-user-shield" style="color: #021a84;"></i> Chhit (Admin)
+      </div>
+      <div class="user-pill" id="userPillSivleng" onclick="switchUser('Sivleng', 'Editor')">
+        <i class="fa-solid fa-user-pen" style="color: #8b5cf6;"></i> Sivleng (Editor)
+      </div>
       <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleTheme()">
         <i class="fa-solid fa-moon"></i> <span id="themeToggleLabel">Dark Mode</span>
       </button>
-
-      <span class="user-switcher-label"><i class="fa-solid fa-users"></i> អ្នកប្រើយន្តការ:</span>
-      <button class="user-pill active admin" id="userBtnChhit" onclick="switchUser('Chhit', 'Admin')"><i class="fa-solid fa-user-shield"></i> Chhit (Admin)</button>
-      <button class="user-pill editor" id="userBtnSivleng" onclick="switchUser('Sivleng', 'Editor')"><i class="fa-solid fa-user-pen"></i> Sivleng (Editor)</button>
-      <div class="cloud-sync-badge local" id="cloudSyncBadge"><i class="fa-solid fa-paper-plane" style="color: #229ed9;"></i> Telegram DG And DDG: ID 6654734966</div>
+      <div class="sync-status-badge" style="font-size: 0.8rem; font-weight: 700; color: #10b981; display: inline-flex; align-items: center; gap: 6px; background: #ecfdf5; padding: 6px 14px; border-radius: 20px; border: 1px solid #a7f3d0;">
+        <i class="fa-solid fa-circle" style="font-size: 0.55rem; color: #10b981;"></i> Realtime Sync Active
+      </div>
     </div>
 
     <h1 class="main-page-title">សាលាអន្តរជាតិ បញ្ញាសាស្ត្រ (PSIS) — Master Content Planner</h1>
