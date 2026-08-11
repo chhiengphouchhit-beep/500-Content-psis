@@ -37,7 +37,76 @@
       --radius-sm: 12px;
       --shadow-card: 0 12px 32px rgba(2, 26, 132, 0.08);
       --shadow-hover: 0 20px 40px rgba(2, 26, 132, 0.14);
-      --transition: all 0.2s ease-in-out;
+      --transition: all 0.25s ease-in-out;
+    }
+
+    [data-theme="dark"] {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --navy-blue: #38bdf8;
+      --navy-dark: #0284c7;
+      --bright-red: #f87171;
+      --soft-red-bg: #450a0a;
+      --soft-red-border: #7f1d1d;
+      --gray-bg: #111827;
+      --text-dark: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #334155;
+      --shadow-card: 0 12px 32px rgba(0, 0, 0, 0.35);
+      --shadow-hover: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .theme-toggle-btn {
+      background: var(--card-bg);
+      color: var(--text-dark);
+      border: 1px solid var(--border-color);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: var(--transition);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .theme-toggle-btn:hover {
+      transform: translateY(-2px);
+      border-color: var(--navy-blue);
+    }
+
+    .back-to-top-btn {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--navy-blue);
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      z-index: 999;
+    }
+
+    .back-to-top-btn.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .back-to-top-btn:hover {
+      transform: translateY(-4px) scale(1.05);
+      background: var(--navy-dark);
     }
 
     *, html, body, input, button, select, textarea, p, h1, h2, h3, h4, h5, h6, span, div, article {
@@ -382,6 +451,11 @@
 
   <header class="header-container">
     <div class="user-switcher-bar">
+
+      <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleTheme()">
+        <i class="fa-solid fa-moon"></i> <span id="themeToggleLabel">Dark Mode</span>
+      </button>
+
       <span class="user-switcher-label"><i class="fa-solid fa-users"></i> អ្នកប្រើយន្តការ:</span>
       <button class="user-pill active admin" id="userBtnChhit" onclick="switchUser('Chhit', 'Admin')"><i class="fa-solid fa-user-shield"></i> Chhit (Admin)</button>
       <button class="user-pill editor" id="userBtnSivleng" onclick="switchUser('Sivleng', 'Editor')"><i class="fa-solid fa-user-pen"></i> Sivleng (Editor)</button>
@@ -13346,11 +13420,58 @@ function saveData() {
       }, 2500);
     }
 
-    window.addEventListener('DOMContentLoaded', async () => { 
+    
+    function toggleTheme() {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('psis_theme', newTheme);
+      updateThemeUI(newTheme);
+    }
+
+    function updateThemeUI(theme) {
+      const btn = document.getElementById('themeToggleBtn');
+      const label = document.getElementById('themeToggleLabel');
+      if (!btn || !label) return;
+      if (theme === 'dark') {
+        btn.innerHTML = '<i class="fa-solid fa-sun" style="color: #f59e0b;"></i> Light Mode';
+      } else {
+        btn.innerHTML = '<i class="fa-solid fa-moon" style="color: #6366f1;"></i> Dark Mode';
+      }
+    }
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem('psis_theme') || 'light';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      updateThemeUI(savedTheme);
+    }
+
+    function scrollToTop() {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    window.addEventListener('scroll', () => {
+      const btn = document.getElementById('backToTopBtn');
+      if (!btn) return;
+      if (window.scrollY > 400) {
+        btn.classList.add('visible');
+      } else {
+        btn.classList.remove('visible');
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      initTheme(); 
       await loadData();
       switchUser(currentUser.name, currentUser.role);
     });
   </script>
+
+
+  <!-- Floating Back to Top Button -->
+  <button id="backToTopBtn" class="back-to-top-btn" onclick="scrollToTop()" title="Go to top">
+    <i class="fa-solid fa-arrow-up"></i>
+  </button>
 
 </body>
 </html>
