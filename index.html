@@ -13262,15 +13262,40 @@ function saveData() {
       const element = document.getElementById(cardId);
       if (!element) return;
 
-      showToast('កំពុងរៀបចំទាញយករូបភាព Card (Pixel Perfect Layout)...');
+      showToast('កំពុងរៀបចំទាញយករូបភាព Card (Perfect Crop)...');
+
+      // 1. Save original live DOM styles
+      const originalHeight = element.style.height;
+      const originalMinHeight = element.style.minHeight;
+      const originalAlignSelf = element.style.alignSelf;
 
       const actionsTop = element.querySelector('.card-actions-top');
       const checkbox = element.querySelector('.select-checkbox');
       const commentInput = element.querySelector('.comment-input-row');
-      
+      const commentsSection = element.querySelector('.comments-section');
+      const approvalsSection = element.querySelector('.approvals-section');
+
+      const actionsDisplay = actionsTop ? actionsTop.style.display : '';
+      const checkboxDisplay = checkbox ? checkbox.style.display : '';
+      const commentInputDisplay = commentInput ? commentInput.style.display : '';
+      const commentsDisplay = commentsSection ? commentsSection.style.display : '';
+      const approvalsDisplay = approvalsSection ? approvalsSection.style.display : '';
+
+      // 2. Temporarily collapse live DOM element height to pure content
       if (actionsTop) actionsTop.style.display = 'none';
       if (checkbox) checkbox.style.display = 'none';
       if (commentInput) commentInput.style.display = 'none';
+      if (commentsSection) commentsSection.style.display = 'none';
+      if (approvalsSection) approvalsSection.style.display = 'none';
+
+      element.style.height = 'auto';
+      element.style.minHeight = '0px';
+      element.style.alignSelf = 'start';
+
+      // Measure exact pixel bounds after DOM layout reflow
+      const exactRect = element.getBoundingClientRect();
+      const exactWidth = Math.ceil(exactRect.width);
+      const exactHeight = Math.ceil(exactRect.height);
 
       try {
         const canvas = await html2canvas(element, {
@@ -13279,50 +13304,33 @@ function saveData() {
           allowTaint: true,
           backgroundColor: '#ffffff',
           logging: false,
+          width: exactWidth,
+          height: exactHeight,
           onclone: (clonedDoc) => {
             const clonedEl = clonedDoc.getElementById(cardId);
             if (clonedEl) {
-              // Outer Card Container Precision Styling
               clonedEl.style.contentVisibility = 'visible';
               clonedEl.style.transform = 'none';
-              clonedEl.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.05)';
+              clonedEl.style.boxShadow = 'none';
               clonedEl.style.background = '#ffffff';
               clonedEl.style.color = '#1e293b';
               clonedEl.style.borderRadius = '20px';
               clonedEl.style.border = '2px solid #e2e8f0';
               clonedEl.style.overflow = 'hidden';
-              clonedEl.style.height = 'auto';
+              clonedEl.style.height = `${exactHeight}px`;
               clonedEl.style.minHeight = '0px';
-              clonedEl.style.maxHeight = 'none';
-              clonedEl.style.display = 'block';
               clonedEl.style.margin = '0';
               clonedEl.style.padding = '0';
 
-              // Hide top action controls, checkboxes, team comments, and approval history in PNG export
-              const hideElements = clonedEl.querySelectorAll('.card-actions-top, .select-checkbox, .comment-input-row, .comments-section, .approvals-section');
-              hideElements.forEach(el => {
-                el.style.setProperty('display', 'none', 'important');
-                el.style.setProperty('margin', '0', 'important');
-                el.style.setProperty('padding', '0', 'important');
-                el.style.setProperty('height', '0', 'important');
-              });
-
-              // Card Content Wrapper - Padding 24px top/left/right, 0px bottom so banner connects seamlessly
               const cardContent = clonedEl.querySelector('.card-content');
               if (cardContent) {
                 cardContent.style.padding = '24px 26px 0px 26px';
                 cardContent.style.margin = '0';
-                cardContent.style.flex = 'none';
-                cardContent.style.height = 'auto';
               }
 
-              // Badges Bar
               const badgeBar = clonedEl.querySelector('.badge-bar');
-              if (badgeBar) {
-                badgeBar.style.marginBottom = '14px';
-              }
+              if (badgeBar) badgeBar.style.marginBottom = '14px';
 
-              // Main Title Styling
               const mainTitle = clonedEl.querySelector('.card-main-title');
               if (mainTitle) {
                 mainTitle.style.color = '#021a84';
@@ -13331,7 +13339,6 @@ function saveData() {
                 mainTitle.style.lineHeight = '1.4';
               }
 
-              // Objective Box Spacing
               const objBox = clonedEl.querySelector('.objective-box');
               if (objBox) {
                 objBox.style.backgroundColor = '#fff5f5';
@@ -13342,25 +13349,21 @@ function saveData() {
               const objText = clonedEl.querySelector('.objective-text');
               if (objText) objText.style.color = '#334155';
 
-              // 2-Column Grid Spacing
               const grid2col = clonedEl.querySelector('.grid-2col');
               if (grid2col) {
                 grid2col.style.marginBottom = '16px';
                 grid2col.style.gap = '18px';
               }
 
-              // Caption Box Spacing - exactly 20px spacing before the bottom banner
               const captionBox = clonedEl.querySelector('.caption-box');
               if (captionBox) {
                 captionBox.style.marginBottom = '20px';
                 captionBox.style.padding = '14px 16px';
               }
 
-              // Force bright text & white bg across inner content
               const textEls = clonedEl.querySelectorAll('.script-paragraph, .shot-list-item, .caption-text');
               textEls.forEach(el => el.style.color = '#334155');
 
-              // Bottom Banner - exact attachment at bottom edge with zero gap
               const banner = clonedEl.querySelector('.card-bottom-banner');
               if (banner) {
                 banner.style.background = '#021a84';
@@ -13371,14 +13374,6 @@ function saveData() {
                 banner.style.marginTop = '0px';
                 banner.style.marginBottom = '0px';
               }
-
-              // Force visibility on all content children inside cloned element
-              const allChildren = clonedEl.querySelectorAll('*');
-              allChildren.forEach(child => {
-                if (!child.classList.contains('comments-section') && !child.classList.contains('approvals-section') && !child.classList.contains('card-actions-top') && !child.classList.contains('select-checkbox') && !child.classList.contains('comment-input-row')) {
-                  child.style.contentVisibility = 'visible';
-                }
-              });
             }
           }
         });
@@ -13390,14 +13385,21 @@ function saveData() {
         document.body.appendChild(link);
         link.click();
         link.remove();
-        showToast('បាន Download រូបភាព Card (Pixel Perfect Layout)!');
+        showToast('បាន Download រូបភាព Card (Perfect Height Crop)!');
       } catch (err) {
         console.error('PNG Export Error:', err);
         showToast('មានបញ្ហាក្នុងការបង្កើតរូបភាព PNG!');
       } finally {
-        if (actionsTop) actionsTop.style.display = 'flex';
-        if (checkbox) checkbox.style.display = 'inline-block';
-        if (commentInput) commentInput.style.display = 'flex';
+        // 3. Restore live DOM element styles
+        element.style.height = originalHeight;
+        element.style.minHeight = originalMinHeight;
+        element.style.alignSelf = originalAlignSelf;
+
+        if (actionsTop) actionsTop.style.display = actionsDisplay;
+        if (checkbox) checkbox.style.display = checkboxDisplay;
+        if (commentInput) commentInput.style.display = commentInputDisplay;
+        if (commentsSection) commentsSection.style.display = commentsDisplay;
+        if (approvalsSection) approvalsSection.style.display = approvalsDisplay;
       }
     }
 
