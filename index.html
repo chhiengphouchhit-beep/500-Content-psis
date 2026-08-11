@@ -13195,7 +13195,7 @@ function saveData() {
       if (e.key === 'Enter') addComment(cardId);
     }
 
-    function downloadCardImage(cardId) {
+    async function downloadCardImage(cardId) {
       const element = document.getElementById(cardId);
       if (!element) return;
 
@@ -13208,28 +13208,49 @@ function saveData() {
       if (checkbox) checkbox.style.visibility = 'hidden';
       if (commentInput) commentInput.style.display = 'none';
 
-      html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
-        if (actionsTop) actionsTop.style.visibility = 'visible';
-        if (checkbox) checkbox.style.visibility = 'visible';
-        if (commentInput) commentInput.style.display = 'flex';
+      const computedStyle = window.getComputedStyle(element);
+      const bgColor = computedStyle.backgroundColor || '#ffffff';
+
+      try {
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: bgColor,
+          logging: false,
+          onclone: (clonedDoc) => {
+            const clonedEl = clonedDoc.getElementById(cardId);
+            if (clonedEl) {
+              clonedEl.style.transform = 'none';
+              clonedEl.style.boxShadow = 'none';
+            }
+          }
+        });
 
         const image = canvas.toDataURL('image/png');
         const link = document.createElement('a');
         link.href = image;
         link.download = `psis_${cardId}_content.png`;
+        document.body.appendChild(link);
         link.click();
+        link.remove();
         showToast('បាន Download រូបភាព Card (PNG) រក្សាទុក!');
-      });
+      } catch (err) {
+        console.error('PNG Export Error:', err);
+        showToast('មានបញ្ហាក្នុងការបង្កើតរូបភាព PNG!');
+      } finally {
+        if (actionsTop) actionsTop.style.visibility = 'visible';
+        if (checkbox) checkbox.style.visibility = 'visible';
+        if (commentInput) commentInput.style.display = 'flex';
+      }
     }
 
     async function downloadSelectedCards() {
       if (selectedCards.size === 0) return;
       showToast(`កំពុង Download រូបភាព ${selectedCards.size} Cards...`);
       for (const cardId of selectedCards) {
-        await new Promise(resolve => {
-          downloadCardImage(cardId);
-          setTimeout(resolve, 800);
-        });
+        await downloadCardImage(cardId);
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
